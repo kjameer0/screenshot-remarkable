@@ -10,6 +10,8 @@ track any window you point it at.
 
 ```sh
 ./remarkable-capture.sh              # track the reMarkable Screen Share window, every 3s
+./remarkable-capture.sh -1           # take a single screenshot and exit
+./remarkable-capture.sh -1 -c        # single screenshot, straight to the clipboard
 ./remarkable-capture.sh -i 1.5 -c    # every 1.5s, each new frame ready to paste with Cmd-V
 ./remarkable-capture.sh -k 20        # keep only the 20 newest frames
 ./remarkable-capture.sh --list       # list capturable windows
@@ -17,6 +19,10 @@ track any window you point it at.
 ./remarkable-capture.sh -r 100,80,1200,1600  # fixed screen region instead
 ./remarkable-capture.sh -f           # whole screen
 ```
+
+With `-1` the script prints the path of the frame it wrote and exits, so it
+composes with other commands (`open "$(./remarkable-capture.sh -1)"`). It exits
+non-zero if the window can't be captured.
 
 Frames land in `~/remarkable-frames/` (override with `-o`), timestamped. The
 newest is always at `~/remarkable-frames/latest.png`, so you can drag that one
@@ -28,6 +34,7 @@ file into a chat and re-drag it as the drawing evolves. `Ctrl-C` to stop.
 | `-o, --outdir` | where frames go (default `~/remarkable-frames`) |
 | `-a, --app` | window owner to match (default `reMarkable`) |
 | `-t, --title` | window title substring (default `Screen Share`) |
+| `-1, --once` | take one screenshot, print its path, exit |
 | `-c, --clipboard` | copy each new frame to the clipboard |
 | `-k, --keep` | keep only the N newest frames |
 | `-r, --region` | capture a fixed `x,y,width,height` region |

@@ -3,6 +3,8 @@
 # pasted/uploaded into a Claude chat for feedback.
 #
 #   ./remarkable-capture.sh                # track the reMarkable Screen Share window, 3s
+#   ./remarkable-capture.sh -1             # take exactly one screenshot and exit
+#   ./remarkable-capture.sh -1 -c          # one screenshot, straight to the clipboard
 #   ./remarkable-capture.sh -i 1.5 -c      # 1.5s, copy each new frame to the clipboard
 #   ./remarkable-capture.sh -k 20          # keep only the 20 newest frames
 #   ./remarkable-capture.sh -a Chrome -t Figma   # any other app/window
@@ -26,9 +28,10 @@ OUTDIR="$HOME/remarkable-frames"
 MODE="window"     # window | region | full
 REGION=""
 CLIPBOARD=0
+ONCE=0
 KEEP=0            # 0 = keep every frame
 
-usage() { sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { awk 'NR>1 && /^#/ {sub(/^# ?/, ""); print; next} NR>1 {exit}' "$0"; exit "${1:-0}"; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -39,6 +42,7 @@ while [ $# -gt 0 ]; do
     -r|--region)    REGION="$2"; MODE="region"; shift 2 ;;
     -f|--full)      MODE="full"; shift ;;
     -c|--clipboard) CLIPBOARD=1; shift ;;
+    -1|--once)      ONCE=1; shift ;;
     -k|--keep)      KEEP="$2"; shift 2 ;;
     -l|--list)      MODE="list"; shift ;;
     -h|--help)      usage 0 ;;
@@ -91,23 +95,38 @@ missing=0
 # NB: screencapture refuses dot-prefixed output filenames, so no leading dot.
 tmp="$OUTDIR/pending-frame.png"
 
-echo "capturing every ${INTERVAL}s -> $OUTDIR   (latest: $OUTDIR/latest.png)"
-[ "$CLIPBOARD" = 1 ] && echo "clipboard mode: each new frame is ready to paste with Cmd-V"
-echo "Ctrl-C to stop"
+if [ "$ONCE" = 0 ]; then
+  echo "capturing every ${INTERVAL}s -> $OUTDIR   (latest: $OUTDIR/latest.png)"
+  [ "$CLIPBOARD" = 1 ] && echo "clipboard mode: each new frame is ready to paste with Cmd-V"
+  echo "Ctrl-C to stop"
+fi
 
 while true; do
   if shot "$tmp" && [ -s "$tmp" ]; then
     missing=0
     hash=$(md5 -q "$tmp" 2>/dev/null)
-    if [ -n "$hash" ] && [ "$hash" != "$last_hash" ]; then
+    # One-shot always saves; the loop saves only when the frame actually changed.
+    if [ "$ONCE" = 1 ] || { [ -n "$hash" ] && [ "$hash" != "$last_hash" ]; }; then
       last_hash="$hash"
       count=$((count + 1))
       frame="$OUTDIR/frame-$(date +%Y%m%d-%H%M%S).png"
+      # Timestamps are second-granularity; don't clobber a frame from this
+      # same second (easy to hit with back-to-back one-shots).
+      if [ -e "$frame" ]; then
+        n=2
+        while [ -e "${frame%.png}-$n.png" ]; do n=$((n + 1)); done
+        frame="${frame%.png}-$n.png"
+      fi
       mv "$tmp" "$frame"
       cp "$frame" "$OUTDIR/latest.png"
       [ "$CLIPBOARD" = 1 ] && osascript -e \
         "set the clipboard to (read (POSIX file \"$frame\") as «class PNGf»)" 2>/dev/null
-      printf '\r[%d] %s  ' "$count" "$(basename "$frame")"
+      if [ "$ONCE" = 1 ]; then
+        echo "$frame"
+        [ "$CLIPBOARD" = 1 ] && echo "copied to clipboard — paste with Cmd-V"
+      else
+        printf '\r[%d] %s  ' "$count" "$(basename "$frame")"
+      fi
       if [ "$KEEP" -gt 0 ]; then
         ls -1t "$OUTDIR"/frame-*.png 2>/dev/null | tail -n +"$((KEEP + 1))" \
           | while read -r old; do rm -f "$old"; done
@@ -115,9 +134,19 @@ while true; do
     else
       rm -f "$tmp"
     fi
+    [ "$ONCE" = 1 ] && exit 0
   else
     rm -f "$tmp"
     missing=$((missing + 1))
+    if [ "$ONCE" = 1 ]; then
+      # Don't hang on a one-shot: a few quick retries, then give up loudly.
+      if [ "$missing" -ge 3 ]; then
+        echo "!! couldn't capture the window after $missing tries" >&2
+        exit 1
+      fi
+      sleep 0.5
+      continue
+    fi
     [ "$missing" = 1 ] && printf '\rwindow gone — waiting for it to come back...  '
   fi
   sleep "$INTERVAL"
