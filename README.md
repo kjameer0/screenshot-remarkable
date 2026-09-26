@@ -104,6 +104,7 @@ Code only if `/drawing-session` doesn't appear.
 | `/drawing-session look` | grab one frame now and react to it |
 | `/drawing-session end` | close the session; offers to prune frames, never deletes unprompted |
 | `/drawing-session status` | marker state, whether the window is findable, frame count |
+| `/drawing-session update` | `git pull` the toolkit and report what changed |
 
 Two things it does deliberately:
 

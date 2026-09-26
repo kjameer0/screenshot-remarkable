@@ -78,6 +78,14 @@ failure.
   confident wrong correction on the user's own page is the worst outcome here.
 - Don't grade unprompted. "Look at this" invites a reaction, not a score.
 
+## Updating
+
+`git -C <repo> pull --ff-only`, after checking `git status --porcelain` is clean —
+don't pull over the user's uncommitted edits to the capture script. `winid` rebuilds
+itself on the next capture if `winid.swift` changed. If the skill was installed by
+copying rather than linking, re-run `./install.sh --copy` or the pull won't reach
+the installed copy.
+
 ## Where things are
 
 | | |

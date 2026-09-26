@@ -1,6 +1,6 @@
 ---
 name: drawing-session
-description: Run a live feedback session on whatever the user is drawing or writing on their reMarkable tablet (shared to the Mac via the reMarkable app's "Screen Share" window). `start` preflights the capture script and confirms the session is ready; while a session is on, every user turn that refers to the drawing triggers a fresh screenshot that is read before replying. Use when the user wants feedback on handwritten math/notes/sketches in progress, says "look at my tablet", "check my work", "how's this", "start a drawing session", or asks for feedback on a shared screen. Subcommands - start, look, end, status.
+description: Run a live feedback session on whatever the user is drawing or writing on their reMarkable tablet (shared to the Mac via the reMarkable app's "Screen Share" window). `start` preflights the capture script and confirms the session is ready; while a session is on, every user turn that refers to the drawing triggers a fresh screenshot that is read before replying. Use when the user wants feedback on handwritten math/notes/sketches in progress, says "look at my tablet", "check my work", "how's this", "start a drawing session", or asks for feedback on a shared screen. Subcommands - start, look, end, status, update.
 ---
 
 # drawing-session
@@ -39,6 +39,7 @@ by hand, since window-ID resolution is the whole point.
 | `look` | `subcommands/look.md` | Grab one fresh frame now and respond to it |
 | `end` | `subcommands/end.md` | Drop the marker, optionally summarize and tidy frames |
 | `status` | — | Report marker state, whether the Screen Share window is currently findable, and frame count |
+| `update` | `subcommands/update.md` | `git pull` the toolkit repo and report what changed |
 
 Bare `/drawing-session` means `start`. If the user describes the intent in their
 own words ("look at my tablet", "check what I just wrote"), run `look` — or
