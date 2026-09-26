@@ -60,6 +60,26 @@ Identical frames are discarded via an md5 comparison, so an idle drawing doesn't
 pile up duplicate files. If the share window closes, the script waits and picks
 back up when it reopens, re-resolving the ID (which changes on reopen).
 
+## Claude Code skill
+
+`skill/drawing-session/` is a Claude Code skill that drives this script for live
+feedback on work in progress: it preflights the capture path, confirms the session
+is ready before you start drawing, then grabs a fresh frame whenever the
+conversation refers to the page.
+
+```sh
+ln -sfn "$PWD/skill/drawing-session" ~/.claude/skills/drawing-session
+```
+
+Symlinked rather than copied, so the repo stays the single source of truth.
+It is usually picked up right away — restart Claude Code only if `/drawing-session`
+doesn't appear. Then `/drawing-session start`.
+
+It reads frames from disk and never uses `-c`, so your clipboard stays yours. It
+also md5-compares each new frame against the last one it read and skips re-reading
+an unchanged page, which keeps a long session from spending an image per turn on a
+static drawing.
+
 ## Requirements
 
 - macOS, with Swift available (`swiftc`, from the Xcode Command Line Tools)
