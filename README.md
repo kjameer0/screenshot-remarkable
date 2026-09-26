@@ -1,10 +1,41 @@
 # screenshot-remarkable
 
-Continuously screenshot a reMarkable tablet's shared screen on macOS, so a
-drawing in progress can be pasted or uploaded into a chat for feedback.
+A small macOS toolkit for getting AI feedback on what you're drawing **as you draw
+it**. Screenshot a reMarkable tablet's shared screen — once, on an interval, or on
+demand from an agent mid-conversation.
 
-Built for the reMarkable desktop app's **Screen Share** window, but it will
-track any window you point it at.
+Built for the reMarkable desktop app's **Screen Share** window, but it will track
+any window you point it at.
+
+Two pieces:
+
+- **`remarkable-capture.sh`** — the capture script. Useful on its own.
+- **`skill/drawing-session/`** — a Claude Code skill that drives it, so an agent
+  can preflight the setup and then grab a fresh frame whenever the conversation
+  refers to your page. Other harnesses: see [AGENTS.md](AGENTS.md).
+
+## Quick start
+
+```sh
+git clone https://github.com/kjameer0/screenshot-remarkable.git
+cd screenshot-remarkable
+./install.sh
+```
+
+The installer builds the window-ID helper, checks that screen capture actually
+works (permissions included), reports whether the share window is open, and wires
+the skill into `~/.claude/skills`. `./install.sh --check` verifies the capture path
+without installing anything.
+
+Then, in Claude Code:
+
+```
+/drawing-session start
+```
+
+It reads your page, tells you what it sees, and from then on grabs a fresh frame
+whenever you ask about the drawing. Or skip the harness entirely and use the
+script directly:
 
 ## Usage
 
@@ -60,31 +91,39 @@ Identical frames are discarded via an md5 comparison, so an idle drawing doesn't
 pile up duplicate files. If the share window closes, the script waits and picks
 back up when it reopens, re-resolving the ID (which changes on reopen).
 
-## Claude Code skill
+## The drawing-session skill
 
-`skill/drawing-session/` is a Claude Code skill that drives this script for live
-feedback on work in progress: it preflights the capture path, confirms the session
-is ready before you start drawing, then grabs a fresh frame whenever the
-conversation refers to the page.
+`./install.sh` symlinks `skill/drawing-session/` into `~/.claude/skills` (use
+`--copy` for a self-contained install), so the repo stays the source of truth and
+`git pull` updates the skill. It's usually picked up immediately; restart Claude
+Code only if `/drawing-session` doesn't appear.
 
-```sh
-ln -sfn "$PWD/skill/drawing-session" ~/.claude/skills/drawing-session
-```
+| | |
+|---|---|
+| `/drawing-session start` | preflight, read a test frame, confirm ready, then hold the session |
+| `/drawing-session look` | grab one frame now and react to it |
+| `/drawing-session end` | close the session; offers to prune frames, never deletes unprompted |
+| `/drawing-session status` | marker state, whether the window is findable, frame count |
 
-Symlinked rather than copied, so the repo stays the single source of truth.
-It is usually picked up right away — restart Claude Code only if `/drawing-session`
-doesn't appear. Then `/drawing-session start`.
+Two things it does deliberately:
 
-It reads frames from disk and never uses `-c`, so your clipboard stays yours. It
-also md5-compares each new frame against the last one it read and skips re-reading
-an unchanged page, which keeps a long session from spending an image per turn on a
-static drawing.
+- **Your clipboard stays yours.** Frames are read from disk; the skill never passes
+  `-c`.
+- **Unchanged pages aren't re-read.** Each look md5-compares against the last frame
+  read, so a long session doesn't spend an image per turn on a static drawing.
+
+For harnesses that don't read Claude Code skills, [AGENTS.md](AGENTS.md) states the
+same contract in a portable form — many agent tools pick that file up automatically.
 
 ## Requirements
 
 - macOS, with Swift available (`swiftc`, from the Xcode Command Line Tools)
 - Screen Recording permission for whichever terminal you run it from
   (System Settings › Privacy & Security › Screen Recording)
+- The reMarkable desktop app, with the tablet's screen share running — or any
+  other window you'd rather point it at
+
+`./install.sh --check` verifies all of the above and tells you which is missing.
 
 ## Notes
 
